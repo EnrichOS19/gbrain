@@ -816,6 +816,8 @@ export interface SearchResult {
   title: string;
   type: PageType;
   chunk_text: string;
+  /** Recall budget packing cut the title or chunk text of this result. */
+  truncated?: boolean;
   chunk_source: 'compiled_truth' | 'timeline' | 'fenced_code';
   chunk_id: number;
   chunk_index: number;

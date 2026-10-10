@@ -509,11 +509,12 @@ export const RESPONSE_SCHEMAS: Record<VerbName, Record<string, unknown>> = {
         description: 'Search arm — present only when `query` was passed.',
         items: {
           type: 'object',
-          required: ['slug', 'title', 'evidence', 'create_safety', 'provenance'],
+          required: ['slug', 'title', 'evidence', 'create_safety', 'provenance', 'truncated'],
           properties: {
             slug: { type: 'string' },
             title: { type: ['string', 'null'] },
             chunk: { type: ['string', 'null'] },
+            truncated: { type: 'boolean', description: 'True when recall budget packing cut this result\'s title or chunk text; false otherwise.' },
             evidence: { type: 'string', enum: EVIDENCE_ENUM },
             create_safety: { type: 'string', enum: CREATE_SAFETY_ENUM },
             provenance: { type: 'string', description: 'Origin page slug.' },
