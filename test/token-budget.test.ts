@@ -19,6 +19,7 @@ import {
   enforceTokenBudget,
   estimateTokens,
   packToBudget,
+  packRecallResultsToBudget,
   resultTokens,
   searchSalvageEnabled,
 } from '../src/core/search/token-budget.ts';
@@ -215,9 +216,30 @@ describe('packToBudget \u2014 frozen strict edge (memory-verb consumers)', () =>
 
   test('budget undefined / <= 0 passes items through unchanged', () => {
     const items = [makeResult({ slug: 'a' }), makeResult({ slug: 'b' })];
-    expect(packToBudget(items, resultTokens, undefined).items).toHaveLength(2);
-    expect(packToBudget(items, resultTokens, 0).items).toHaveLength(2);
-    expect(packToBudget(items, resultTokens, -1).items).toHaveLength(2);
+    for (const budget of [undefined, 0, -1]) {
+      const generic = packToBudget(items, resultTokens, budget);
+      const recall = packRecallResultsToBudget(items, budget);
+      expect(generic.items).toBe(items);
+      expect(recall.items).toBe(items);
+      expect(generic.meta).toMatchObject({ budget: 0, kept: 2, dropped: 0 });
+      expect(recall.meta).toMatchObject({ budget: 0, kept: 2, dropped: 0 });
+    }
+  });
+
+  test('recall omits oversized relational edges without marking unchanged text as cut', () => {
+    const first = makeResult({ title: 'Normal title', chunk_text: 'Original evidence text is long enough', relational: {
+      role: 'support', seed: 'test-page', hop: 1, path_count: 1,
+      edges: [{ link_type: 'related_to', stored_from: 'test-page', stored_to: 'other-page',
+        orientation: 'canonical', context: 'x'.repeat(100), origin: null }],
+    } });
+    const budget = resultTokens({ ...first, relational: undefined });
+    const packed = packRecallResultsToBudget([first], budget);
+    expect(packed.items).toHaveLength(1);
+    expect(packed.items[0]).toMatchObject({ title: first.title, chunk_text: first.chunk_text });
+    expect(packed.items[0].relational).toBeUndefined();
+    expect(packed.items[0].truncated).toBeUndefined();
+    expect(packed.meta.truncated).toBeUndefined();
+    expect(packed.meta.used).toBe(budget);
   });
 
   test('context_pack-shaped fixture: page-list packing keeps a contiguous prefix, strict on oversize head', () => {

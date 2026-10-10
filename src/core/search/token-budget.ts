@@ -91,10 +91,8 @@ export interface TokenBudgetMeta {
   /** Count of results actually returned. */
   kept: number;
   /**
-   * WP2/T3 (ENG-2/FOV-2) — set when the minKeep failsafe kept ONE result
-   * whose chunk_text was truncated (on a copy) to fit the budget. Only the
-   * search wrapper (`enforceTokenBudget`) produces this; `packToBudget`
-   * stays strict for the frozen verb consumers.
+   * Set when the search minKeep failsafe or recall's first-page fallback
+   * cut result text to fit the budget. `packToBudget` stays strict.
    */
   truncated?: boolean;
 }
@@ -178,20 +176,27 @@ export function packRecallResultsToBudget(
   }
 
   const first = results[0];
+  // Dropping relational edges can make the original text fit. No text was cut.
+  if (estimateTokens(first.title) + estimateTokens(first.chunk_text) <= budget) {
+    const excerpt = { ...first, relational: undefined };
+    return {
+      items: [excerpt],
+      meta: { budget, used: resultTokens(excerpt), dropped: results.length - 1, kept: 1 },
+    };
+  }
   const marked = (value: string, cap: number) =>
     sliceToTokens(value, cap - estimateTokens(RECALL_TRUNCATION_MARKER)) + RECALL_TRUNCATION_MARKER;
   const titleCost = estimateTokens(first.title);
-  const title = titleCost + estimateTokens(RECALL_TRUNCATION_MARKER) > budget
+  const titleCut = titleCost + estimateTokens(RECALL_TRUNCATION_MARKER) > budget;
+  const title = titleCut
     ? marked(first.title, budget)
     : first.title;
-  const remaining = budget - estimateTokens(title);
-  const chunk_text = remaining >= estimateTokens(RECALL_TRUNCATION_MARKER)
-    ? marked(first.chunk_text, remaining)
-    : '';
+  const chunk_text = titleCut ? '' : marked(first.chunk_text, budget - titleCost);
   const excerpt: SearchResult = {
     ...first,
     title,
     chunk_text,
+    truncated: true,
     relational: undefined,
     ...(first.delivered ? { delivered: { ...first.delivered, truncated: true, tokens: estimateTokens(chunk_text) } } : {}),
   };

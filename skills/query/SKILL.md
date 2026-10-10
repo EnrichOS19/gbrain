@@ -138,10 +138,12 @@ Use the resolved brain and source as usual; the option does not widen permission
 `budget_packing` reports the effective policy and per-arm candidate/kept/dropped/used
 counts. Costs estimate `ceil(fact.length/4)` or
 `ceil(title.length/4) + ceil(chunk.length/4)`, not exact tokenizer or JSON-envelope
-size. Packing never skips an oversized prefix item or truncates it; multiple
-required pages may still not fit. With no nonblank query or no positive finite
-budget, the operation keeps legacy behavior. An eligible positive budget below one
-token returns empty arms. See the protocol for fractional-budget compatibility.
+size. Packing never skips an oversized prefix item. When a page will not fit,
+recall can return its top result with a cut title or chunk; check that result's
+`truncated` boolean. Multiple required pages may still not fit. With no nonblank
+query or no positive finite budget, the operation keeps legacy behavior. An
+eligible positive budget below one token returns empty arms. See the protocol
+for fractional-budget compatibility.
 
 This guidance and advertised tool schemas do not prove native-harness adoption.
 Confirm an observed query-first call in a fresh harness conversation before

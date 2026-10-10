@@ -159,6 +159,7 @@ describe('recall opt-in query-first budget packing', () => {
       const result = await recall({ query: 'Telnyx', budget_tokens: 800, budget_policy });
       expect(result.results).toHaveLength(1);
       expect(result.results[0].chunk).toContain('[truncated]');
+      expect(result.results[0].truncated).toBe(true);
       expect(result.budget_used).toBeLessThanOrEqual(800);
       expect(result.results[0].chunk).not.toBe(full.results[0].chunk);
       if (budget_policy) assertAccounting(result);
@@ -170,6 +171,8 @@ describe('recall opt-in query-first budget packing', () => {
     const full = await recall({ query: 'Telnyx' });
     const large = await recall({ query: 'Telnyx', budget_tokens: 800 });
     expect(large.results).toEqual(full.results);
+    expect(full.results[0].truncated).toBe(false);
+    expect(large.results[0].truncated).toBe(false);
     await page('notes/long', 'Long answer', `OversizeOnly ${'details '.repeat(600)}`);
     const tiny = await recall({ query: 'OversizeOnly', budget_tokens: 50, budget_policy: 'query_first' });
     expect(tiny.results.length).toBeLessThanOrEqual(1);
@@ -295,10 +298,27 @@ describe('recall opt-in query-first budget packing', () => {
       expect(result.results).toHaveLength(1);
       expect(result.results[0].slug).toBe('notes/large');
       expect(result.results[0].chunk).toContain('[truncated]');
+      expect(result.results[0].truncated).toBe(true);
       expect(result.facts).toEqual([]);
       expect(raw.map(r => [r.slug, r.chunk_text])).toEqual([['notes/large', 'x'.repeat(400)], ['notes/small', 'Tiny']]);
       expect(result.budget_packing.results).toMatchObject({ candidates: 2, kept: 1, dropped: 1 });
       assertAccounting(result);
+    } finally { search.mockRestore(); }
+  });
+
+  test('title alone exhausts the budget: the default path cuts and marks the title', async () => {
+    const raw = [{ page_id: 1, slug: 'notes/long-title', title: 'T'.repeat(100),
+      chunk_text: 'needle ' + 'x'.repeat(100), score: 1, source_id: 'default' }] as SearchResult[];
+    const search = spyOn(engine, 'searchKeyword').mockResolvedValue(raw);
+    try {
+      const result = await recall({ query: 'needle', budget_tokens: 8 });
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].title).toContain('[truncated]');
+      expect(result.results[0].title).not.toBe(raw[0].title);
+      expect(result.results[0].chunk).toBe('');
+      expect(result.results[0].truncated).toBe(true);
+      expect(result.budget_used).toBeLessThanOrEqual(8);
+      expect(validateAgainstSchema(result, RESPONSE_SCHEMAS.recall)).toEqual([]);
     } finally { search.mockRestore(); }
   });
 
