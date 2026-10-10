@@ -142,8 +142,8 @@ size. Packing never skips an oversized prefix item. When a page will not fit,
 recall can return its top result with a cut title or chunk; check that result's
 `truncated` boolean. Multiple required pages may still not fit. With no nonblank
 query or no positive finite budget, the operation keeps legacy behavior. An
-eligible positive budget below one token returns empty arms. See the protocol
-for fractional-budget compatibility.
+eligible query-first call with a positive budget below one token returns empty
+arms. See the protocol for fractional-budget compatibility.
 
 This guidance and advertised tool schemas do not prove native-harness adoption.
 Confirm an observed query-first call in a fresh harness conversation before
