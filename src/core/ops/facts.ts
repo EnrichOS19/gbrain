@@ -28,7 +28,7 @@ import { markKeywordHits } from '../search/evidence.ts';
 import { hybridSearchCached, stampContentFlags } from '../search/hybrid.ts';
 import { dedupResults } from '../search/dedup.ts';
 import { bumpLastRetrievedAt } from '../last-retrieved.ts';
-import { packToBudget, estimateTokens, resultTokens } from '../search/token-budget.ts';
+import { packToBudget, packRecallResultsToBudget, estimateTokens, resultTokens } from '../search/token-budget.ts';
 import { redactRetrievalOutput } from '../search/output-redaction.ts';
 import { isAvailable } from '../ai/gateway.ts';
 // #4209: the named entity-hints cap — surfaced in the extract_facts param
@@ -487,7 +487,7 @@ const recall: Operation = {
     const queryFirst = p.budget_policy === 'query_first' && queryText !== null && budgetTokens !== null;
     if (queryFirst) {
       const resultsPack = budgetTokens > 0
-        ? packToBudget(searchResults, resultTokens, budgetTokens)
+        ? packRecallResultsToBudget(searchResults, budgetTokens)
         : { items: [] as SearchResult[], meta: { used: 0, dropped: searchResults.length } };
       packedResults = resultsPack.items;
       const remaining = budgetTokens - resultsPack.meta.used;
@@ -503,7 +503,7 @@ const recall: Operation = {
       const remaining = budgetTokens - factsPack.meta.used;
       const resultsPack =
         remaining > 0
-          ? packToBudget(searchResults, resultTokens, remaining)
+          ? packRecallResultsToBudget(searchResults, remaining)
           : { items: [] as SearchResult[], meta: { budget: 0, used: 0, dropped: searchResults.length, kept: 0 } };
       packedResults = resultsPack.items;
       budgetUsed = factsPack.meta.used + resultsPack.meta.used;
