@@ -568,6 +568,7 @@ const recall: Operation = {
               slug: r.slug,
               title: r.title,
               chunk: r.chunk_text,
+              truncated: r.truncated === true,
               evidence: r.evidence,
               create_safety: r.create_safety,
               provenance: r.slug,
