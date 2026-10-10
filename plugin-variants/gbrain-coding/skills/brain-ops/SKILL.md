@@ -58,7 +58,8 @@ suppresses writes for that turn, including when standing capture is enabled.
 > `gbrain recall --query 'zebra telescope' --budget-tokens 75 --budget-policy query_first --json`.
 > Keep entity-first, event/session-filtered and fact-focused questions on their
 > existing facts-first route; do not change `context_pack`. Costs are character-based
-> estimates, and an oversized first item is dropped without skipping or truncation.
+> estimates. An oversized first fact is dropped; an oversized first page can be
+> returned with a cut title or chunk marked by `truncated: true`.
 > Read `budget_packing` before interpreting an empty result as missing memory.
 > See `skills/query/SKILL.md` for the MCP request and caller example. Guidance is
 > not native-harness activation: adoption remains unverified until a fresh

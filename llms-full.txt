@@ -8579,7 +8579,8 @@ Retrieve saved facts and (with `query`) budget-packed page snippets.
   available budget, recall keeps the best page when at least 8 estimated tokens
   remain. It omits relational edges and cuts the title or chunk with a text marker
   only when the original text still exceeds that budget. The estimated cost stays
-  within the cap. Below the 8-token excerpt floor, the page arm stays empty;
+  within the cap. Below the 8-token excerpt floor, a whole page result that
+  already fits is kept; an oversized result is omitted without cutting it;
   `first_items_exceed_budget` is reported only when candidates exist and both
   the fact and page arms return nothing. No page hits leave the full budget for
   facts. Without a nonblank query, use exact legacy facts-first behavior;
