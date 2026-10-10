@@ -141,8 +141,11 @@ Retrieve saved facts and (with `query`) budget-packed page snippets.
   numeric budget: pack the ranked page prefix first, then the fact prefix in the
   remaining budget. If the floored budget is zero, keep neither arm. An exhausted
   remainder keeps zero second-arm items. Each arm stops at its first oversized
-  item without skipping to smaller later items or truncating. No page hits or
-  an oversized first page leaves the full budget for facts. Without a nonblank
+  item without skipping to smaller later items. When no whole page fits its
+  available budget, recall returns the best page with a marked excerpt of its
+  title or chunk and omits relational edges; the estimated cost stays within
+  the cap. If a useful marked excerpt cannot fit, the page arm stays empty with
+  `first_items_exceed_budget`. No page hits leave the full budget for facts. Without a nonblank
   query, use exact legacy facts-first behavior; without a positive finite budget,
   keep the unbudgeted arrays. Candidate selection, source grants, visibility,
   fact filters and per-arm limits are unchanged.

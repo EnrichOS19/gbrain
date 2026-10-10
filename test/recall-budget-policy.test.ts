@@ -151,6 +151,32 @@ test.each([undefined, null])('an omitted selector %j preserves the legacy contex
 });
 
 describe('recall opt-in query-first budget packing', () => {
+  test('returns a marked excerpt when the best page exceeds an 800-token budget', async () => {
+    await page('notes/oversized', 'Oversized answer', `Telnyx ${'details '.repeat(600)}`);
+    const full = await recall({ query: 'Telnyx' });
+    expect(estimateTokens(full.results[0].title) + estimateTokens(full.results[0].chunk)).toBeGreaterThan(800);
+    for (const budget_policy of [undefined, 'query_first']) {
+      const result = await recall({ query: 'Telnyx', budget_tokens: 800, budget_policy });
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].chunk).toContain('[truncated]');
+      expect(result.budget_used).toBeLessThanOrEqual(800);
+      expect(result.results[0].chunk).not.toBe(full.results[0].chunk);
+      if (budget_policy) assertAccounting(result);
+    }
+  });
+
+  test('keeps the full page when it fits and handles a tiny budget', async () => {
+    await page('notes/short', 'Short answer', 'Telnyx short answer.');
+    const full = await recall({ query: 'Telnyx' });
+    const large = await recall({ query: 'Telnyx', budget_tokens: 800 });
+    expect(large.results).toEqual(full.results);
+    await page('notes/long', 'Long answer', `OversizeOnly ${'details '.repeat(600)}`);
+    const tiny = await recall({ query: 'OversizeOnly', budget_tokens: 50, budget_policy: 'query_first' });
+    expect(tiny.results.length).toBeLessThanOrEqual(1);
+    expect(tiny.budget_used).toBeLessThanOrEqual(50);
+    expect(tiny.results.length ? tiny.results[0].chunk.includes('[truncated]') : tiny.budget_packing.reason).toBeTruthy();
+  });
+
   test('retains the matching note at 75 tokens while preserving omitted and explicit legacy output', async () => {
     await seedStarvation();
     const params = { query: 'zebra telescope', budget_tokens: 75 };
@@ -257,7 +283,7 @@ describe('recall opt-in query-first budget packing', () => {
     assertAccounting(result);
   });
 
-  test('oversized page head stops the page prefix, preserves its contents, and leaves facts the full budget', async () => {
+  test('oversized page head yields a marked excerpt without mutating the candidate', async () => {
     await fact('Fits.');
     const raw = [
       { page_id: 1, slug: 'notes/large', title: 'Large', chunk_text: 'x'.repeat(400), score: 2, source_id: 'default' },
@@ -266,10 +292,12 @@ describe('recall opt-in query-first budget packing', () => {
     const search = spyOn(engine, 'searchKeyword').mockResolvedValue(raw);
     try {
       const result = await recall({ query: 'needle', budget_tokens: 10, budget_policy: 'query_first' });
-      expect(result.results).toEqual([]);
-      expect(result.facts.map((f: any) => f.fact)).toEqual(['Fits.']);
+      expect(result.results).toHaveLength(1);
+      expect(result.results[0].slug).toBe('notes/large');
+      expect(result.results[0].chunk).toContain('[truncated]');
+      expect(result.facts).toEqual([]);
       expect(raw.map(r => [r.slug, r.chunk_text])).toEqual([['notes/large', 'x'.repeat(400)], ['notes/small', 'Tiny']]);
-      expect(result.budget_packing.results).toEqual({ candidates: 2, kept: 0, dropped: 2, used: 0 });
+      expect(result.budget_packing.results).toMatchObject({ candidates: 2, kept: 1, dropped: 1 });
       assertAccounting(result);
     } finally { search.mockRestore(); }
   });

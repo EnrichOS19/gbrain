@@ -164,6 +164,43 @@ export function packToBudget<T>(
   };
 }
 
+const RECALL_TRUNCATION_MARKER = ' [truncated]';
+const MIN_RECALL_EXCERPT_TOKENS = 8;
+
+/** Recall-only fallback. Keep the strict generic packer unchanged for other verbs. */
+export function packRecallResultsToBudget(
+  results: SearchResult[],
+  budget: number | undefined,
+): { items: SearchResult[]; meta: TokenBudgetMeta } {
+  const packed = packToBudget(results, resultTokens, budget);
+  if (packed.items.length > 0 || results.length === 0 || !budget || budget < MIN_RECALL_EXCERPT_TOKENS) {
+    return packed;
+  }
+
+  const first = results[0];
+  const marked = (value: string, cap: number) =>
+    sliceToTokens(value, cap - estimateTokens(RECALL_TRUNCATION_MARKER)) + RECALL_TRUNCATION_MARKER;
+  const titleCost = estimateTokens(first.title);
+  const title = titleCost + estimateTokens(RECALL_TRUNCATION_MARKER) > budget
+    ? marked(first.title, budget)
+    : first.title;
+  const remaining = budget - estimateTokens(title);
+  const chunk_text = remaining >= estimateTokens(RECALL_TRUNCATION_MARKER)
+    ? marked(first.chunk_text, remaining)
+    : '';
+  const excerpt: SearchResult = {
+    ...first,
+    title,
+    chunk_text,
+    relational: undefined,
+    ...(first.delivered ? { delivered: { ...first.delivered, truncated: true, tokens: estimateTokens(chunk_text) } } : {}),
+  };
+  return {
+    items: [excerpt],
+    meta: { budget, used: resultTokens(excerpt), dropped: results.length - 1, kept: 1, truncated: true },
+  };
+}
+
 /**
  * Search-pipeline budget enforcement — a thin wrapper over packToBudget
  * with the SearchResult cost model (title + chunk_text). Pinned by
