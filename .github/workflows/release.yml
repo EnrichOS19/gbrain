@@ -43,7 +43,7 @@ concurrency:
 
 jobs:
   version:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 10
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -72,7 +72,7 @@ jobs:
   ci-gate:
     needs: version
     if: needs.version.outputs.exists == 'false'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 120
     permissions:
       contents: read
@@ -165,13 +165,14 @@ jobs:
           subject-path: bin/${{ matrix.artifact }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
+          retention-days: 7
           name: ${{ matrix.artifact }}
           path: bin/${{ matrix.artifact }}
 
   release:
     needs: [version, ci-gate, build]
     if: needs.version.outputs.exists == 'false' && needs.ci-gate.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 15
     permissions:
       contents: write  # create the tag + release (scoped to this job only)
@@ -242,7 +243,7 @@ jobs:
   publish-template:
     needs: [version, ci-gate, release]
     if: needs.version.outputs.exists == 'false' && needs.ci-gate.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     timeout-minutes: 15
     permissions:
       contents: read
@@ -347,7 +348,7 @@ jobs:
   publish-codex-plugin:
     needs: [version, ci-gate, release]
     if: needs.version.outputs.exists == 'false' && needs.ci-gate.outputs.publish == 'true'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: write  # force-push the codex-plugin branch of THIS repo
     steps:
