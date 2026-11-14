@@ -45,6 +45,8 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
+          retention-days: 7
+        with:
           name: persistence-read-${{ matrix.engine }}-bun-${{ matrix.bun }}
           path: .context/persistence-read-latency.json
           if-no-files-found: error
@@ -154,6 +156,8 @@ jobs:
           test/e2e/extract-atoms-page-state.test.ts
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          retention-days: 7
         with:
           name: persistence-deployment-bun-${{ matrix.bun }}
           path: .context/persistence-runtime-matrix.json
@@ -295,6 +299,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
+          retention-days: 7
+        with:
           name: persistence-${{ matrix.engine }}-bun-${{ matrix.bun }}
           path: .context/persistence-manifest.json
           if-no-files-found: error
@@ -376,6 +382,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
+          retention-days: 7
+        with:
           name: persistence-robot-${{ matrix.engine }}-bun-${{ matrix.bun }}
           path: .context/persistence-robot.json
           if-no-files-found: error
@@ -425,6 +433,8 @@ jobs:
       - name: Upload reconciliation crash manifests
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          retention-days: 7
         with:
           name: reconciliation-${{ matrix.engine }}-bun-${{ matrix.bun }}
           path: .context/reconcile-crashes/*.json
